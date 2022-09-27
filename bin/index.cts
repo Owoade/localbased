@@ -22,12 +22,20 @@ prog
 //     console.log('> these are extra opts', opts);
 //   });
 
+Action.init()
+
 prog
   .command('start')
   .describe('Starts the development for the JSON server')
   .option('-port, --port')
   .example('start --port 3000')
   .action(Action.startServer);
+
+prog
+  .command("index <indexes>")
+  .describe("generates indexes in config file")
+  .option("-append", "--append")
+  .action(Action.generateIndex)
 prog.parse(process.argv);
 
 export const name = "shayo"
