@@ -7,8 +7,9 @@ Thanks to localbased you get to focus more on the your frontend Implementations
 `npm i -g localbased`
 
 ## Initialization
-Start the server
 `localbased start --port [port] default:2048`
+ Start the server
+
 
 ### Endpoints
  - ```/:collectionName/create``` method: **POST**; payload: **check below**; This creates a document in the specified collection
