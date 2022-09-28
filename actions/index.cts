@@ -52,14 +52,29 @@ export default abstract class Action {
 
     app.delete("/:collectionName/delete/:id", ServerController.delete);
 
-    app.listen(PORT, () => {
-      log(
-        `🚀🚀 server running on port ${PORT}`,
-        "INFO"
-      );
+    function listen(port: number){
+      // console.log(PORT)
+      app.listen(port, () => {
+        log(
+          `🚀🚀 server running on port ${port}`,
+          "INFO"
+        );
+  
+        open(`http://localhost:${port}`);
+      }).once("error",(e:any)=>{
 
-      open(`http://localhost:${PORT}`);
-    });
+        if(e.code === "EADDRINUSE"){
+
+          log(`port ${port} already in use`, "WARN")
+  
+          listen(port + 2)
+           
+        }
+
+      })
+    }
+
+    listen(PORT)
   }
 
   static async generateConfig() {
