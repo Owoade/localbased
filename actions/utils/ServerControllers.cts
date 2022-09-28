@@ -18,7 +18,6 @@ export default abstract class ServerController {
       `${CWD}/db/collections/${collectionName}`
     );
 
-    console.log(NO_COLLECTION_DIR);
 
     const documentId = crypto.randomUUID();
     const dirName = `${CWD}/db/collections/${collectionName}`;
@@ -59,25 +58,35 @@ export default abstract class ServerController {
   }
 
   static async getAll(req: Request, res: Response) {
+    
     const collectionName = req.params.collectionName;
-    const documents = fs.readdirSync(`${CWD}/db/collections/${collectionName}`);
-    let all_docs: {}[] = [];
 
-    if (documents.length === 0)
-      return res.send(`Collection '${collectionName}' doesn't exist`);
+    try{
+      const documents = fs.readdirSync(`${CWD}/db/collections/${collectionName}`);
+      let all_docs: {}[] = [];
+  
+      if (documents.length === 0){
+        return res.json({ collectionName, data: []});
+      }
+  
+      documents.forEach((doc) => {
+        const data = JSON.parse(
+          fs.readFileSync(
+            `${CWD}/db/collections/${collectionName}/${doc}`,
+            "utf-8"
+          )
+        );
+        all_docs.push(data);
+      });
+  
+      res.json({ collectionName, data: all_docs });
 
-    documents.forEach((doc) => {
-      console.log(doc);
-      const data = JSON.parse(
-        fs.readFileSync(
-          `${CWD}/db/collections/${collectionName}/${doc}`,
-          "utf-8"
-        )
-      );
-      all_docs.push(data);
-    });
-
-    res.json({ collectionName, data: all_docs });
+    }catch (err: any) {
+      if (err.code === "ENOENT") {
+        res.status(404).send(`collection '${collectionName}' not found`);
+      }
+    }
+   
   }
 
   static async getOne(req: Request, res: Response) {
@@ -89,19 +98,16 @@ export default abstract class ServerController {
       const doc = JSON.parse(doc_json.toString());
 
       res.json(doc);
-    } catch (err: any) {
+    } 
+    catch (err: any) {
       if (err.code === "ENOENT") {
-        res.status(200).send(`document not found`);
+        res.status(404).send(`document not found`);
       }
     }
   }
 
   static async update(req: Request, res: Response) {
     const { collectionName, id } = req.params;
-
-    const q = req.query;
-
-    console.log(q);
 
     const { update } = req.body;
 
@@ -144,7 +150,15 @@ export default abstract class ServerController {
 
     const deleteFile = utils.promisify(fs.unlink);
 
-    await deleteFile(`${CWD}/db/collections/${collectionName}/${id}.json`);
+    try{
+
+      await deleteFile(`${CWD}/db/collections/${collectionName}/${id}.json`);
+
+    }catch (err: any) {
+      if (err.code === "ENOENT") {
+        res.status(404).send(`document not found`);
+      }
+    }
 
     res.send("document successfully deleted");
   }

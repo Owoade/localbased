@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Localbased</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- <div class="main-container"> -->
+        <div class="logo">
+            <h4>localabased</h4>
+        </div>
+        <h3>A REST API at your <strong>command</strong> 😎 </h3>
+
+        <h4>Endpoints</h4>
+        <div class="endpoint">
+            <main>POST</main>
+            <p>/:collectionName/create</p>
+            <span> Creates a document in the collection specified</span>
+        </div>
+        <div class="payload-block">
+           request.body: {
+              ...data
+            }
+        </div>
+        <div class="endpoint">
+            <main>GET</main>
+            <p>/:collectionName/get/single/:id</p>
+            <span> Returns a document with the specified id</span>
+        </div>
+        <div class="endpoint">
+            <main>GET</main>
+            <p>/:collectionName/get/all</p>
+            <span> Returns all the documents in the collection</span>
+        </div>
+        <div class="endpoint">
+            <main>PATCH</main>
+            <p>/:collectionName/update/:id</p>
+            <span> Updates the document with the specified id</span>
+        </div>
+        <div class="payload-block">
+            request.body: {
+              update: { ...updates }
+            }
+        </div>
+        <div class="endpoint">
+            <main>DELETE</main>
+            <p>/:collectionName/delete/:id</p>
+            <span> Deletes the document with the specified id </span>
+        </div>
+        <div class="cta"> ...Start Building 🚀🚀</div>
+
+        <span class="footer-text">Created with 🧡 by <a style="color: black; font-weight: bolder; text-decoration: none;" href="https://github.com/Owoade" target="_blank" >Owoade</a> </span>
+    <!-- </div> -->
+</body>
+<style>
+    body{
+  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+  text-align: center;
+}
+
+.logo{
+    width: 100px;
+    color: whitesmoke;
+    height: 100px;
+    border-radius: 50%;
+    background-color: black;
+    display: grid;
+    place-items: center;
+    padding: 10px;
+    border: 3px solid rgb(29, 27, 27);
+    margin: 1em auto;
+}
+
+h3{
+  color: rgb(98, 98, 98);
+}
+
+h3 strong{
+  color: black;
+}
+
+.endpoint{
+  display: flex;
+  justify-content: space-between;
+  width: 600px;
+  margin: .3em auto;
+  text-align: center;
+}
+
+.endpoint main{
+  display: block;
+  transform: translateY(.8em);
+  background-color: black;
+  color: white;
+  padding: .4em;
+  height: fit-content;
+  border-radius: 8px;
+}
+
+.endpoint p {
+  color: blue;
+}
+
+.endpoint span{
+  transform: translateY(1em);
+  color: rgb(50, 50, 50);
+}
+
+.payload-block{
+  background-color: black;
+  width: 600px;
+  margin: .3em auto;
+  color: white;
+  padding: 1em 0;
+  border-radius: 8px;
+}
+.cta{
+  padding: 6px;
+  width: fit-content;
+  margin: 20px auto;
+}
+
+.footer-text{
+  color: rgb(50, 50, 50);
+}
+</style>
+</html>
