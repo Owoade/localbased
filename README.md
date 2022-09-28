@@ -1,9 +1,12 @@
 # localbased
-A JSON based DBMS for local use (a firebase inspired project🙂) 
+A JSON based DBMS for local use (a firebase inspired project🙂),
+Thanks to localbased you get to focus more on the your frontend Implementations
+
 
 ## Installation
 `npm i -g localbased`
 
+## Initialization
 Start the server
 `localbased start --port [port] default:2048`
 
@@ -28,5 +31,6 @@ Start the server
  ```
   - ```/:collectionName/get/update``` method: **DELETE**; payload: **no payload**; This deletes a document with the specified `id` 
 
-
+...Start Building 🚀🚀
 Thank you for using **localbased**
+
