@@ -2,6 +2,9 @@
   "name": "localbase",
   "version": "1.0.0",
   "type": "module",
+  "author": "Owoade Anuoluwapo <owoadeanuoluwapo2@gmail.com>",
+  "repository": "git@github.com:Owoade/localbase.git",
+  "license": "MIT",
   "dependencies": {
     "@types/commander": "^2.12.2",
     "@types/express": "^4.17.14",
