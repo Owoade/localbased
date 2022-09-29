@@ -7,8 +7,9 @@ Thanks to localbased you get to focus more on the your frontend Implementations
 `npm i -g localbased`
 
 ## Initialization
+In your current working directory run
 `localbased start --port [port] default:2048`
- Starts the server
+this command starts the server
 
 
 ### Endpoints
@@ -18,7 +19,8 @@ Thanks to localbased you get to focus more on the your frontend Implementations
        ...data
     }
  ```
- **Note** `collectionName` is just like a table's name in SQL and is created once the first document is create
+ **E.g** `/comments/create` this creates a document(comment) in the comments collection
+ **Note** `collectionName` is just like a table's name in SQL and is created once the first document is created
  
  - ```/:collectionName/get/all``` method: **GET**; payload: **no payload**; This returns all the document in the specified `collectionName`
  - ```/:collectionName/get/single/:id``` method: **GET**; payload: **no payload**; This returns the document with the specified `id`

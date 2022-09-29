@@ -12,7 +12,9 @@ const readFile = utils.promisify(fs.readFile);
 
 export default abstract class ServerController {
   static async create(req: Request, res: Response) {
-    const collectionName = req.params.collectionName;
+    const collectionName_raw = req.params.collectionName;
+
+    const collectionName = ServerController.pluralize( collectionName_raw )
 
     // cases
     const NO_COLLECTION_DIR = !fs.existsSync(
@@ -60,7 +62,10 @@ export default abstract class ServerController {
   }
 
   static async getAll(req: Request, res: Response) {
-    const collectionName = req.params.collectionName;
+
+    const collectionName_raw = req.params.collectionName;
+
+    const collectionName = ServerController.pluralize( collectionName_raw )
 
     try {
       const documents = fs.readdirSync(
@@ -93,10 +98,13 @@ export default abstract class ServerController {
   }
 
   static async getOne(req: Request, res: Response) {
-    const { collectionName, id } = req.params;
+
+    const { collectionName: collectionName_raw, id } = req.params;
+
+    const collectionName = ServerController.pluralize( collectionName_raw )
 
     try {
-      const doc_json = await readFile(`${CWD}/db/${collectionName}/${id}.json`);
+      const doc_json = await readFile(`${CWD}/db/collections/${collectionName}/${id}.json`);
 
       const doc = JSON.parse(doc_json.toString());
 
@@ -109,7 +117,10 @@ export default abstract class ServerController {
   }
 
   static async update(req: Request, res: Response) {
-    const { collectionName, id } = req.params;
+
+   const { collectionName: collectionName_raw, id } = req.params;
+
+    const collectionName = ServerController.pluralize( collectionName_raw )
 
     const { update } = req.body;
 
@@ -154,7 +165,10 @@ export default abstract class ServerController {
   }
 
   static async delete(req: Request, res: Response) {
-    const { collectionName, id } = req.params;
+
+    const { collectionName: collectionName_raw, id } = req.params;
+
+    const collectionName = ServerController.pluralize( collectionName_raw )
 
     const file_path = `${CWD}/db/collections/${collectionName}/${id}.json`;
     const temp_file_path = `${CWD}/db/collections/${collectionName}/deleted-${id}.json`;
@@ -182,9 +196,17 @@ export default abstract class ServerController {
 
   }
 
+  static pluralize( model: string){
+    return model.charAt( model.length - 1 ) !== "s" ? `${model}s` : model
+  }
+
   static async query(req: Request, res: Response) {
+
     const query = req.query;
-    const { collectionName } = req.params;
+
+    const { collectionName: collectionName_raw } = req.params;
+
+    const collectionName = ServerController.pluralize( collectionName_raw )
 
     const config_buffer = await readFile(`${CWD}/package.json`);
 
