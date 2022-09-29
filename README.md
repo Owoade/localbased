@@ -11,6 +11,11 @@ In your current working directory run
 `localbased start --port [port]`
 this command starts the server on the specified port else the server runs on a default port of `2048`.
 
+ **Eg**
+#####
+  `localbased start --port 4000` this command starts the server on the specified port `4000`
+
+  `localbased start` this command starts the server on the default port `2048`
 
 ### Endpoints
  - ```/:collectionName/create``` method: **POST**; payload: **check below**; This creates a document in the specified collection
