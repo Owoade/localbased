@@ -157,10 +157,13 @@ export default abstract class ServerController {
       updatedDocumentStream.push(Action.formatFile(JSON.stringify(new_doc)));
 
       res.json(new_doc);
+
     } catch (err: any) {
+
       if (err.code === "ENOENT") {
         res.status(404).send(`document not found`);
       }
+
     }
   }
 
@@ -186,9 +189,11 @@ export default abstract class ServerController {
 
       );
     } catch (err: any) {
+
       if (err.code === "ENOENT") {
         return res.status(404).send(`document not found`);
       }
+      
       return res.status(400).json(err);
     }
 
