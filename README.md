@@ -8,7 +8,7 @@ Thanks to localbased you get to focus more on the your frontend Implementations
 
 ## Initialization
 `localbased start --port [port] default:2048`
- Start the server
+ Starts the server
 
 
 ### Endpoints

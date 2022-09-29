@@ -17,6 +17,7 @@ const localbase_config = { localbase: { indexes: [] } };
 const config_path = `${CWD}/package.json`;
 
 export default abstract class Action {
+
   static async init() {
     const NO_DB_DIR = !fs.existsSync(`${CWD}/db`);
 
@@ -25,12 +26,13 @@ export default abstract class Action {
       fs.mkdirSync(`${CWD}/db/indexes`);
       fs.mkdirSync(`${CWD}/db/collections`);
     }
+
   }
 
   static async startServer(opts: any) {
     const app = express();
 
-    const PORT = opts.port ?? 2048;
+    let PORT = opts.port ?? 2048;
 
     app.use(express.static(path.join(__dirname,'public')))
 
@@ -61,20 +63,26 @@ export default abstract class Action {
         );
   
         open(`http://localhost:${port}`);
-      }).once("error",(e:any)=>{
+      })
+      .once("error",(e:any)=>{
 
         if(e.code === "EADDRINUSE"){
 
+          PORT = port + 2
+
           log(`port ${port} already in use`, "WARN")
-  
+          
           listen(port + 2)
-           
+          
         }
 
       })
     }
 
+
     listen(PORT)
+
+   
   }
 
   static async generateConfig() {

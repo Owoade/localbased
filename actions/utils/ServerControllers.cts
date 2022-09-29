@@ -1,15 +1,16 @@
 import { Request, Response } from "express";
-import fs from "fs";
+import fs, { unlinkSync } from "fs";
 import stream, { Stream } from "stream";
 import crypto from "crypto";
 import utils from "util";
 import Action from "../index.cjs";
+import EventEmitter from "events";
+import { log } from "logie";
 
 const CWD = process.cwd();
 const readFile = utils.promisify(fs.readFile);
 
 export default abstract class ServerController {
-
   static async create(req: Request, res: Response) {
     const collectionName = req.params.collectionName;
 
@@ -17,7 +18,6 @@ export default abstract class ServerController {
     const NO_COLLECTION_DIR = !fs.existsSync(
       `${CWD}/db/collections/${collectionName}`
     );
-
 
     const documentId = crypto.randomUUID();
     const dirName = `${CWD}/db/collections/${collectionName}`;
@@ -49,27 +49,31 @@ export default abstract class ServerController {
         flags: "w",
       });
 
+      requestStream.on("end", () => fileStream.end());
+
       requestStream.pipe(fileStream);
 
-      requestStream.push( Action.formatFile( JSON.stringify( document ) ) );
+      requestStream.push(Action.formatFile(JSON.stringify(document)));
 
       res.json(document);
     });
   }
 
   static async getAll(req: Request, res: Response) {
-    
     const collectionName = req.params.collectionName;
 
-    try{
-      const documents = fs.readdirSync(`${CWD}/db/collections/${collectionName}`);
+    try {
+      const documents = fs.readdirSync(
+        `${CWD}/db/collections/${collectionName}`
+      );
       let all_docs: {}[] = [];
-  
-      if (documents.length === 0){
-        return res.json({ collectionName, data: []});
+
+      if (documents.length === 0) {
+        return res.json({ collectionName, data: [] });
       }
-  
+
       documents.forEach((doc) => {
+        if( doc.includes("deleted") ) return 
         const data = JSON.parse(
           fs.readFileSync(
             `${CWD}/db/collections/${collectionName}/${doc}`,
@@ -78,15 +82,14 @@ export default abstract class ServerController {
         );
         all_docs.push(data);
       });
-  
-      res.json({ collectionName, data: all_docs });
 
-    }catch (err: any) {
+      res.json({ collectionName, data: all_docs });
+    } catch (err: any) {
       if (err.code === "ENOENT") {
-        res.status(404).send(`collection '${collectionName}' not found`);
+        return res.status(404).send(`collection '${collectionName}' not found`);
       }
+      return res.status(400).json(err);
     }
-   
   }
 
   static async getOne(req: Request, res: Response) {
@@ -98,8 +101,7 @@ export default abstract class ServerController {
       const doc = JSON.parse(doc_json.toString());
 
       res.json(doc);
-    } 
-    catch (err: any) {
+    } catch (err: any) {
       if (err.code === "ENOENT") {
         res.status(404).send(`document not found`);
       }
@@ -130,12 +132,18 @@ export default abstract class ServerController {
       const fileStream = fs.createWriteStream(filePath);
 
       const updatedDocumentStream = new stream.Readable({
+        emitClose: true,
         read() {},
       });
 
       updatedDocumentStream.pipe(fileStream);
 
-      updatedDocumentStream.push( Action.formatFile( JSON.stringify( new_doc ) ) );
+      updatedDocumentStream.on("close", () => {
+        console.log("read stream ended");
+        fileStream.close();
+      });
+
+      updatedDocumentStream.push(Action.formatFile(JSON.stringify(new_doc)));
 
       res.json(new_doc);
     } catch (err: any) {
@@ -148,19 +156,30 @@ export default abstract class ServerController {
   static async delete(req: Request, res: Response) {
     const { collectionName, id } = req.params;
 
-    const deleteFile = utils.promisify(fs.unlink);
+    const file_path = `${CWD}/db/collections/${collectionName}/${id}.json`;
+    const temp_file_path = `${CWD}/db/collections/${collectionName}/deleted-${id}.json`;
 
-    try{
+    try {
+      fs.rename(
+        file_path,
 
-      await deleteFile(`${CWD}/db/collections/${collectionName}/${id}.json`);
+        temp_file_path,
 
-    }catch (err: any) {
+        (err: any) => {
+          if (err) log(err, "ERROR");
+          unlinkSync(temp_file_path);
+        }
+
+      );
+    } catch (err: any) {
       if (err.code === "ENOENT") {
-        res.status(404).send(`document not found`);
+        return res.status(404).send(`document not found`);
       }
+      return res.status(400).json(err);
     }
 
-    res.send("document successfully deleted");
+    res.send("Document deleted succesfully");
+
   }
 
   static async query(req: Request, res: Response) {
@@ -177,20 +196,20 @@ export default abstract class ServerController {
 
     const NO_INDEX = !config.localbase.indexes.includes(collectionName);
 
-    let error_string = ""
+    let error_string = "";
 
-    if ( NO_CONFIG ){
-      error_string = "Config not found, run `localbase index <...collection-names seprated with - e.g users-comments-likes> `";
-      console.error(error_string)
-      return res.status(403).send(error_string)
+    if (NO_CONFIG) {
+      error_string =
+        "Config not found, run `localbase index <...collection-names seprated with - e.g users-comments-likes> `";
+      console.error(error_string);
+      return res.status(403).send(error_string);
     }
 
-    if ( NO_INDEX ){
-      error_string = "Index not found, run `localbase index <...collection-names seprated with - e.g users-comments-likes> --append true `";
-      console.error(error_string)
-      return res.status(403).send(error_string)
+    if (NO_INDEX) {
+      error_string =
+        "Index not found, run `localbase index <...collection-names seprated with - e.g users-comments-likes> --append true `";
+      console.error(error_string);
+      return res.status(403).send(error_string);
     }
-
-    
   }
 }
