@@ -10,7 +10,8 @@ Thanks to localbased you get to focus more on the your frontend Implementations
 In your current working directory run
 `localbased start --port [port]`
 this command starts the server on the specified port else the server runs on a default port of `2048`.
-**E.g**
+
+**E.g**\n
   `localbased start --port 4000` this command starts the server on the specified port `4000`
 
   `localbased start` this command starts the server on the default port `2048`
