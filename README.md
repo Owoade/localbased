@@ -20,7 +20,8 @@ this command starts the server on the specified port else the server runs on a d
     }
  ```
  **E.g** `/comments/create` this creates a document(comment) in the comments collection
-  **Note** `collectionName` is just like a table's name in SQL and is created once the first document is created
+ ####
+**Note** `collectionName` is just like a table's name in SQL and is created once the first document is created
  
  - ```/:collectionName/get/all``` method: **GET**; payload: **no payload**; This returns all the document in the specified `collectionName`
  - ```/:collectionName/get/single/:id``` method: **GET**; payload: **no payload**; This returns the document with the specified `id`
