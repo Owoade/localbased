@@ -32,7 +32,7 @@ export default abstract class Action {
   static async startServer(opts: any) {
     const app = express();
 
-    let PORT = opts.port ?? 2048;
+    let PORT = opts?.port ?? 2048;
 
     app.use(express.static(path.join(__dirname,'public')))
 

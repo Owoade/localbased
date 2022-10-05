@@ -6,6 +6,7 @@ import utils from "util";
 import Action from "../index.cjs";
 import EventEmitter from "events";
 import { log } from "logie";
+import { request } from "http";
 
 const CWD = process.cwd();
 const readFile = utils.promisify(fs.readFile);
@@ -45,12 +46,12 @@ export default abstract class ServerController {
     });
 
     fs.writeFile(
-      `${dirName}/${document.timestamps.createdAt}-${documentId}.json`,
+      `${dirName}/${document.timestamps.createdAt}_${documentId}.json`,
       "{}",
       (err) => {
         if (err) console.log(err);
         fileStream = fs.createWriteStream(
-          `${dirName}/${document.timestamps.createdAt}-${documentId}.json`,
+          `${dirName}/${document.timestamps.createdAt}_${documentId}.json`,
           {
             encoding: "utf-8",
             flags: "w",
@@ -73,7 +74,7 @@ export default abstract class ServerController {
 
     const pagination = parseInt(req.query?.pagination as string) || 1;
 
-    const order = req.query?.order ?? "a"
+    const order = req.query?.order ?? "a";
 
     const PAGINATION_MULTIPLE = 20;
 
@@ -89,7 +90,7 @@ export default abstract class ServerController {
         return res.json({ collectionName, data: [] });
       }
 
-      if( order === "d" ) documents.reverse(); 
+      if (order === "d") documents.reverse();
 
       const HAS_MORE = documents.length >= pagination * PAGINATION_MULTIPLE;
 
@@ -100,10 +101,6 @@ export default abstract class ServerController {
           ? documents.length
           : pagination * PAGINATION_MULTIPLE;
 
-      console.log(pagination, SLICE_START_INDEX, SLICE_END_INDEX);
-
-      console.log(documents[SLICE_END_INDEX]);
-
       const slized_documents = documents.slice(
         SLICE_START_INDEX,
         SLICE_END_INDEX
@@ -112,7 +109,7 @@ export default abstract class ServerController {
       const pagination_payload = {
         hasMore: HAS_MORE,
         next: HAS_MORE
-          ? `${req.baseUrl}/${collectionName}/getAll?pagination=${
+          ? `http://${req.headers.host}/${collectionName}/get/all?pagination=${
               pagination + 1
             }&&order=${order}`
           : "null",
@@ -147,11 +144,9 @@ export default abstract class ServerController {
 
     const collectionName = ServerController.pluralize(collectionName_raw);
 
-    const main_file =
-      readdirSync(`${CWD}/db/collections/${collectionName}/`)
-      .find(
-        (file) => file.includes(id) && !file.includes("deleted")
-      ) ?? "null.json";
+    const main_file = ServerController.getFile(id, collectionName);
+
+    if (!main_file) return res.status(404).send(`document not found`);
 
     try {
       const doc_json = await readFile(
@@ -175,8 +170,20 @@ export default abstract class ServerController {
 
     const { update } = req.body;
 
+    if ( update.hasOwnProperty("_id") )
+      return res
+        .status(403)
+        .send(
+          "The `_id` property for documents are unmutable as they exist as primary key. "
+        );
+
     try {
-      const filePath = `${CWD}/db/collections/${collectionName}/${id}.json`;
+      const main_file = ServerController.getFile(id, collectionName);
+
+      if (!main_file) return res.status(404).send(`document not found`);
+
+
+      const filePath = `${CWD}/db/collections/${collectionName}/${main_file}`;
 
       const doc_json = await readFile(filePath);
 
@@ -216,18 +223,13 @@ export default abstract class ServerController {
   }
 
   static async delete(req: Request, res: Response) {
-    
     const { collectionName: collectionName_raw, id } = req.params;
 
     const collectionName = ServerController.pluralize(collectionName_raw);
 
-    const main_file =
-    readdirSync(`${CWD}/db/collections/${collectionName}/`)
-    .find(
-      (file) => file.includes(id) 
-    );
-   
-    if(!main_file) return res.status(404).send(`document not found`);
+    const main_file = ServerController.getFile(id, collectionName);
+
+    if (!main_file) return res.status(404).send(`document not found`);
 
     const file_path = `${CWD}/db/collections/${collectionName}/${main_file}`;
     const temp_file_path = `${CWD}/db/collections/${collectionName}/deleted-${main_file}`;
@@ -290,5 +292,11 @@ export default abstract class ServerController {
       console.error(error_string);
       return res.status(403).send(error_string);
     }
+  }
+
+  static getFile(file_id: string, collectionName: string) {
+    return readdirSync(`${CWD}/db/collections/${collectionName}/`).find(
+      (file) => file.split(".")[0].split("_")[1] === file_id
+    );
   }
 }
