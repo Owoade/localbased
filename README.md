@@ -18,22 +18,23 @@ this command starts the server on the specified port else the server runs on a d
   `localbased start` this command starts the server on the default port `2048`
 
 ## Endpoints
- - ```/:collectionName/create``` method: **POST**; payload: **check below**; This creates a document in the specified collection
+```/:collectionName/create``` method: **POST**; payload: **check below**; This creates a document in the specified collection
 ```
   request.body: {
        ...data
     }
  ```
- **E.g** `/comments/create` this creates a document(comment) in the comments collection
+   **E.g** `/comments/create` this creates a document(comment) in the comments collection
 
-**Note** `collectionName` is just like a table's name in SQL and is created once the first document is created
+  **Note** `collectionName` is just like a table's name in SQL and is created once the first document is created
  
- - ```/:collectionName/get/all?order=a``` method: **GET**; payload: **no payload**; This returns all the document in the specified `collectionName`
+  ```/:collectionName/get/all?order=a``` method: **GET**; payload: **no payload**; This returns all the document in the specified `collectionName`
 
-**Note** `order=a` this returns the documents in an assending order otherwise use `order=d` for descending order
+      **Note** `order=a` this returns the documents in an assending order otherwise use `order=d` for descending order
 
- - ```/:collectionName/get/single/:id``` method: **GET**; payload: **no payload**; This returns the document with the specified `id`
- - ```/:collectionName/update/:id``` method: **PATCH**; payload: **check below**; This updates a document with the specified `id` 
+  ```/:collectionName/get/single/:id``` method: **GET**; payload: **no payload**; This returns the document with the specified `id`
+
+  ```/:collectionName/update/:id``` method: **PATCH**; payload: **check below**; This updates a document with the specified `id` 
  ```
     request.body: {
       update: {
@@ -41,6 +42,7 @@ this command starts the server on the specified port else the server runs on a d
       }
     }
  ```
+ 
   - ```/:collectionName/delete/:id``` method: **DELETE**; payload: **no payload**; This deletes a document with the specified `id` 
 
 ...Start Building 🚀🚀
