@@ -30,7 +30,7 @@ this command starts the server on the specified port else the server runs on a d
  
   ```/:collectionName/get/all?order=a``` method: **GET**; payload: **no payload**; This returns all the document in the specified `collectionName`
 
--**Note** `order=a` this returns the documents in an assending order otherwise use `order=d` for descending order
+- **Note** `order=a` this returns the documents in an assending order otherwise use `order=d` for descending order
 
 ```/:collectionName/get/single/:id``` method: **GET**; payload: **no payload**; This returns the document with the specified `id`
 
