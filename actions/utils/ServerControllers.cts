@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import fs, { unlinkSync } from "fs";
+import fs, { readdirSync, unlinkSync } from "fs";
 import stream, { Stream } from "stream";
 import crypto from "crypto";
 import utils from "util";
@@ -14,7 +14,7 @@ export default abstract class ServerController {
   static async create(req: Request, res: Response) {
     const collectionName_raw = req.params.collectionName;
 
-    const collectionName = ServerController.pluralize( collectionName_raw )
+    const collectionName = ServerController.pluralize(collectionName_raw);
 
     // cases
     const NO_COLLECTION_DIR = !fs.existsSync(
@@ -44,28 +44,40 @@ export default abstract class ServerController {
       write() {},
     });
 
-    fs.writeFile(`${dirName}/${documentId}.json`, "{}", (err) => {
-      if (err) console.log(err);
-      fileStream = fs.createWriteStream(`${dirName}/${documentId}.json`, {
-        encoding: "utf-8",
-        flags: "w",
-      });
+    fs.writeFile(
+      `${dirName}/${document.timestamps.createdAt}-${documentId}.json`,
+      "{}",
+      (err) => {
+        if (err) console.log(err);
+        fileStream = fs.createWriteStream(
+          `${dirName}/${document.timestamps.createdAt}-${documentId}.json`,
+          {
+            encoding: "utf-8",
+            flags: "w",
+          }
+        );
 
-      requestStream.on("end", () => fileStream.end());
+        requestStream.on("end", () => fileStream.end());
 
-      requestStream.pipe(fileStream);
+        requestStream.pipe(fileStream);
 
-      requestStream.push(Action.formatFile(JSON.stringify(document)));
+        requestStream.push(Action.formatFile(JSON.stringify(document)));
 
-      res.json(document);
-    });
+        res.json(document);
+      }
+    );
   }
 
   static async getAll(req: Request, res: Response) {
-
     const collectionName_raw = req.params.collectionName;
 
-    const collectionName = ServerController.pluralize( collectionName_raw )
+    const pagination = parseInt(req.query?.pagination as string) || 1;
+
+    const order = req.query?.order ?? "a"
+
+    const PAGINATION_MULTIPLE = 20;
+
+    const collectionName = ServerController.pluralize(collectionName_raw);
 
     try {
       const documents = fs.readdirSync(
@@ -77,34 +89,74 @@ export default abstract class ServerController {
         return res.json({ collectionName, data: [] });
       }
 
-      documents.forEach((doc) => {
-        if( doc.includes("deleted") ) return 
+      if( order === "d" ) documents.reverse(); 
+
+      const HAS_MORE = documents.length >= pagination * PAGINATION_MULTIPLE;
+
+      const SLICE_START_INDEX = (pagination - 1) * PAGINATION_MULTIPLE;
+
+      const SLICE_END_INDEX =
+        pagination * PAGINATION_MULTIPLE > documents.length
+          ? documents.length
+          : pagination * PAGINATION_MULTIPLE;
+
+      console.log(pagination, SLICE_START_INDEX, SLICE_END_INDEX);
+
+      console.log(documents[SLICE_END_INDEX]);
+
+      const slized_documents = documents.slice(
+        SLICE_START_INDEX,
+        SLICE_END_INDEX
+      );
+
+      const pagination_payload = {
+        hasMore: HAS_MORE,
+        next: HAS_MORE
+          ? `${req.baseUrl}/${collectionName}/getAll?pagination=${
+              pagination + 1
+            }&&order=${order}`
+          : "null",
+      };
+
+      slized_documents.forEach((doc) => {
+        if (doc.includes("deleted")) return;
+
         const data = JSON.parse(
           fs.readFileSync(
             `${CWD}/db/collections/${collectionName}/${doc}`,
             "utf-8"
           )
         );
+
         all_docs.push(data);
       });
 
-      res.json({ collectionName, data: all_docs });
+      res.json({ collectionName, data: all_docs, ...pagination_payload });
     } catch (err: any) {
       if (err.code === "ENOENT") {
-        return res.status(404).send(`collection '${collectionName}' not found`);
+        return res
+          .status(404)
+          .json({ collectionName, data: [], hasMore: false, next: null });
       }
       return res.status(400).json(err);
     }
   }
 
   static async getOne(req: Request, res: Response) {
-
     const { collectionName: collectionName_raw, id } = req.params;
 
-    const collectionName = ServerController.pluralize( collectionName_raw )
+    const collectionName = ServerController.pluralize(collectionName_raw);
+
+    const main_file =
+      readdirSync(`${CWD}/db/collections/${collectionName}/`)
+      .find(
+        (file) => file.includes(id) && !file.includes("deleted")
+      ) ?? "null.json";
 
     try {
-      const doc_json = await readFile(`${CWD}/db/collections/${collectionName}/${id}.json`);
+      const doc_json = await readFile(
+        `${CWD}/db/collections/${collectionName}/${main_file}`
+      );
 
       const doc = JSON.parse(doc_json.toString());
 
@@ -117,10 +169,9 @@ export default abstract class ServerController {
   }
 
   static async update(req: Request, res: Response) {
+    const { collectionName: collectionName_raw, id } = req.params;
 
-   const { collectionName: collectionName_raw, id } = req.params;
-
-    const collectionName = ServerController.pluralize( collectionName_raw )
+    const collectionName = ServerController.pluralize(collectionName_raw);
 
     const { update } = req.body;
 
@@ -157,24 +208,29 @@ export default abstract class ServerController {
       updatedDocumentStream.push(Action.formatFile(JSON.stringify(new_doc)));
 
       res.json(new_doc);
-
     } catch (err: any) {
-
       if (err.code === "ENOENT") {
         res.status(404).send(`document not found`);
       }
-
     }
   }
 
   static async delete(req: Request, res: Response) {
-
+    
     const { collectionName: collectionName_raw, id } = req.params;
 
-    const collectionName = ServerController.pluralize( collectionName_raw )
+    const collectionName = ServerController.pluralize(collectionName_raw);
 
-    const file_path = `${CWD}/db/collections/${collectionName}/${id}.json`;
-    const temp_file_path = `${CWD}/db/collections/${collectionName}/deleted-${id}.json`;
+    const main_file =
+    readdirSync(`${CWD}/db/collections/${collectionName}/`)
+    .find(
+      (file) => file.includes(id) 
+    );
+   
+    if(!main_file) return res.status(404).send(`document not found`);
+
+    const file_path = `${CWD}/db/collections/${collectionName}/${main_file}`;
+    const temp_file_path = `${CWD}/db/collections/${collectionName}/deleted-${main_file}`;
 
     try {
       fs.rename(
@@ -186,32 +242,28 @@ export default abstract class ServerController {
           if (err) log(err, "ERROR");
           unlinkSync(temp_file_path);
         }
-
       );
     } catch (err: any) {
-
       if (err.code === "ENOENT") {
         return res.status(404).send(`document not found`);
       }
-      
+
       return res.status(400).json(err);
     }
 
     res.send("Document deleted succesfully");
-
   }
 
-  static pluralize( model: string){
-    return model.charAt( model.length - 1 ) !== "s" ? `${model}s` : model
+  static pluralize(model: string) {
+    return model.charAt(model.length - 1) !== "s" ? `${model}s` : model;
   }
 
   static async query(req: Request, res: Response) {
-
     const query = req.query;
 
     const { collectionName: collectionName_raw } = req.params;
 
-    const collectionName = ServerController.pluralize( collectionName_raw )
+    const collectionName = ServerController.pluralize(collectionName_raw);
 
     const config_buffer = await readFile(`${CWD}/package.json`);
 
