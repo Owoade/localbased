@@ -4,9 +4,8 @@ import stream, { Stream } from "stream";
 import crypto from "crypto";
 import utils from "util";
 import Action from "../index.cjs";
-import EventEmitter from "events";
 import { log } from "logie";
-import { request } from "http";
+
 
 const CWD = process.cwd();
 const readFile = utils.promisify(fs.readFile);
@@ -174,8 +173,15 @@ export default abstract class ServerController {
       return res
         .status(403)
         .send(
-          "The `_id` property for documents are unmutable as they exist as primary key. "
+          "The `_id` property for documents are immutable as it exists as a primary key. "
         );
+
+    if ( update.hasOwnProperty("_id") ) 
+      return res
+      .status(403)
+      .send(
+        "The `timestamps` property for documents are immutable as it exists as a primary key. "
+      );
 
     try {
       const main_file = ServerController.getFile(id, collectionName);
