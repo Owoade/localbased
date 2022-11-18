@@ -176,7 +176,7 @@ export default abstract class ServerController {
           "The `_id` property for documents are immutable as it exists as a primary key. "
         );
 
-    if ( update.hasOwnProperty("_id") ) 
+    if ( update.hasOwnProperty("timestamps") ) 
       return res
       .status(403)
       .send(
