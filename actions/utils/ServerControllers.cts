@@ -20,6 +20,7 @@ export default abstract class ServerController {
     const NO_COLLECTION_DIR = !fs.existsSync(
       `${CWD}/db/collections/${collectionName}`
     );
+    const NO_REQUEST_BODY = Object.keys(req.body).length === 0;
 
     const documentId = crypto.randomUUID();
     const dirName = `${CWD}/db/collections/${collectionName}`;
@@ -27,6 +28,10 @@ export default abstract class ServerController {
     const requestStream = new stream.Readable({
       read() {},
     });
+
+    if (NO_REQUEST_BODY) {
+      return ServerController.respond( res, "The request body appears to be empty", "error" );
+    }
 
     const document = {
       _id: documentId,
@@ -63,7 +68,7 @@ export default abstract class ServerController {
 
         requestStream.push(Action.formatFile(JSON.stringify(document)));
 
-        res.json(document);
+        ServerController.respond(res, document, "success");
       }
     );
   }
@@ -86,7 +91,8 @@ export default abstract class ServerController {
       let all_docs: {}[] = [];
 
       if (documents.length === 0) {
-        return res.json({ collectionName, data: [] });
+        // return res.json({ collectionName, data: [] });
+        return ServerController.respond(res, {collectionName, data: []}, "success")
       }
 
       if (order === "d") documents.reverse();
@@ -127,14 +133,15 @@ export default abstract class ServerController {
         all_docs.push(data);
       });
 
-      res.json({ collectionName, data: all_docs, ...pagination_payload });
+      ServerController.respond(res, { collectionName, data: all_docs, ...pagination_payload }, "success" );
+
     } catch (err: any) {
+
       if (err.code === "ENOENT") {
-        return res
-          .status(404)
-          .json({ collectionName, data: [], hasMore: false, next: null });
+        return ServerController.respond( res, { collectionName, data: [], hasMore: false, next: null }, "success" );
       }
-      return res.status(400).json(err);
+
+      return console.log(err);
     }
   }
 
@@ -145,7 +152,7 @@ export default abstract class ServerController {
 
     const main_file = ServerController.getFile(id, collectionName);
 
-    if (!main_file) return res.status(404).send(`document not found`);
+    if (!main_file) return ServerController.respond( res, `document not found`, "error", 404 );
 
     try {
       const doc_json = await readFile(
@@ -154,10 +161,11 @@ export default abstract class ServerController {
 
       const doc = JSON.parse(doc_json.toString());
 
-      res.json(doc);
+      ServerController.respond(res, doc, "success");
+
     } catch (err: any) {
       if (err.code === "ENOENT") {
-        res.status(404).send(`document not found`);
+        ServerController.respond( res, `document not found`, "error", 404 );
       }
     }
   }
@@ -169,25 +177,16 @@ export default abstract class ServerController {
 
     const { update } = req.body;
 
-    if ( update.hasOwnProperty("_id") )
-      return res
-        .status(403)
-        .send(
-          "The `_id` property for documents are immutable as it exists as a primary key. "
-        );
-
-    if ( update.hasOwnProperty("timestamps") ) 
-      return res
-      .status(403)
-      .send(
-        "The `timestamps` property for documents are immutable as it exists as a primary key. "
-      );
+    if (update.hasOwnProperty("_id"))
+      return ServerController.respond(res, "The `_id` property for documents are immutable as it exists as a primary key. ", "error", 403);
+      
+    if (update.hasOwnProperty("timestamps"))
+      return ServerController.respond(res, "The `timestamps` property for documents are immutable. ", "error", 403);
 
     try {
       const main_file = ServerController.getFile(id, collectionName);
 
       if (!main_file) return res.status(404).send(`document not found`);
-
 
       const filePath = `${CWD}/db/collections/${collectionName}/${main_file}`;
 
@@ -220,10 +219,11 @@ export default abstract class ServerController {
 
       updatedDocumentStream.push(Action.formatFile(JSON.stringify(new_doc)));
 
-      res.json(new_doc);
+      ServerController.respond( res, new_doc, "success" )
+      
     } catch (err: any) {
       if (err.code === "ENOENT") {
-        res.status(404).send(`document not found`);
+        ServerController.respond( res, err, "error", 404 )
       }
     }
   }
@@ -235,8 +235,8 @@ export default abstract class ServerController {
 
     const main_file = ServerController.getFile(id, collectionName);
 
-    if (!main_file) return res.status(404).send(`document not found`);
-
+    if (!main_file) return ServerController.respond(res, "Document not found", "error", 404 );
+  
     const file_path = `${CWD}/db/collections/${collectionName}/${main_file}`;
     const temp_file_path = `${CWD}/db/collections/${collectionName}/deleted-${main_file}`;
 
@@ -253,13 +253,13 @@ export default abstract class ServerController {
       );
     } catch (err: any) {
       if (err.code === "ENOENT") {
-        return res.status(404).send(`document not found`);
+        return ServerController.respond(res, "Document not found", "error", 404 );
       }
 
-      return res.status(400).json(err);
+      return console.log(err);
     }
 
-    res.send("Document deleted succesfully");
+    ServerController.respond( res, "Document deleted successfully", "success" )
   }
 
   static pluralize(model: string) {
@@ -305,4 +305,26 @@ export default abstract class ServerController {
       (file) => file.split(".")[0].split("_")[1] === file_id
     );
   }
+
+  static respond(
+    res: Response,
+    payload: any,
+    status: "success" | "error",
+    code?: number
+  ) {
+    if (status === "error") {
+      return res.status(code as number ?? 400 ).json({
+        status,
+        response: false,
+        reason: payload,
+      });
+    }
+
+    res.status( code as number ?? 200 ).json({
+      status,
+      response: payload
+    })
+  }
 }
+
+
