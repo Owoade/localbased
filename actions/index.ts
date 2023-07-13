@@ -5,11 +5,11 @@ import crypto from "crypto";
 import stream, { Stream } from "stream";
 import utils from "util";
 import { readFile } from "fs/promises";
-import ServerController from "./utils/ServerControllers.cjs";
+import ServerController from "./utils/ServerControllers";
 import { log } from "logie";
 import open from "open";
 import path from "path";
-
+import cors from "cors"
 const CWD = process.cwd();
 
 const localbase_config = { localbase: { indexes: [] } };
@@ -38,6 +38,9 @@ export default abstract class Action {
 
     app.use(express.json());
     app.use(express.urlencoded({ extended: false }));
+    app.use(cors({
+      origin: "*"
+    }))
 
     app.get("/", (req: Request, res: Response) => {
       console.log("new request");

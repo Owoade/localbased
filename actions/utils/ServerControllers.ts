@@ -3,7 +3,7 @@ import fs, { readdirSync, unlinkSync } from "fs";
 import stream, { Stream } from "stream";
 import crypto from "crypto";
 import utils from "util";
-import Action from "../index.cjs";
+import Action from "../index";
 import { log } from "logie";
 
 

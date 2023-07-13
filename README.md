@@ -1,7 +1,5 @@
 # localbased
-A JSON based DBMS for local use (a firebase inspired project🙂),
-Thanks to localbased you get to focus more on the your frontend Implementations
-
+Localbased is an intuitive no-code tool designed to assist developers, particularly frontend engineers, in quickly setting up a REST API for communicating with databases on their local machines. It aims to simplify the process of creating a backend server and accessing dynamic data, enabling frontend developers to create full-stack side projects without the need to worry about building a REST API or handling database interactions.
 
 ## Installation
 `npm i -g localbased`
