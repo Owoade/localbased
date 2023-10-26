@@ -19,17 +19,19 @@ const config_path = `${CWD}/package.json`;
 export default abstract class Action {
 
   static async init() {
+
     const NO_DB_DIR = !fs.existsSync(`${CWD}/db`);
 
     if (NO_DB_DIR) {
       fs.mkdirSync(`${CWD}/db`);
-      fs.mkdirSync(`${CWD}/db/indexes`);
-      fs.mkdirSync(`${CWD}/db/collections`);
+      fs.writeFileSync(`${CWD}/db/localbased.db`, '');
+      fs.writeFileSync(`${CWD}/db/models.json`, '{}');
     }
 
   }
 
   static async startServer(opts: any) {
+
     const app = express();
 
     let PORT = opts?.port ?? 2048;
@@ -60,18 +62,18 @@ export default abstract class Action {
     function listen(port: number){
       // console.log(PORT)
       app.listen(port, () => {
+
         log(
           `🚀🚀 server running on port ${port}`,
           "INFO"
         );
   
         open(`http://localhost:${port}`);
+
       })
       .once("error",(e:any)=>{
 
         if(e.code === "EADDRINUSE"){
-
-          PORT = port + 2
 
           log(`port ${port} already in use`, "WARN")
           
@@ -125,6 +127,7 @@ export default abstract class Action {
   }
 
   static async generateIndex(indexes: any, opts: any) {
+
     const appendIndex = opts.append;
 
     const index_arr = indexes.split("-");

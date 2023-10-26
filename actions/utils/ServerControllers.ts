@@ -5,75 +5,52 @@ import crypto from "crypto";
 import utils from "util";
 import Action from "../index";
 import { log } from "logie";
+import DatabaseController from "./DatabaseController";
 
 
 const CWD = process.cwd();
 const readFile = utils.promisify(fs.readFile);
 
 export default abstract class ServerController {
+
   static async create(req: Request, res: Response) {
+
     const collectionName_raw = req.params.collectionName;
 
     const collectionName = ServerController.pluralize(collectionName_raw);
 
-    // cases
-    const NO_COLLECTION_DIR = !fs.existsSync(
-      `${CWD}/db/collections/${collectionName}`
-    );
+    const models = ServerController.getLocalBasedModels();
+
+    const NEW_MODEL = !(models.collectionName);
+
+    if (NEW_MODEL) {
+
+      await DatabaseController.createTable(collectionName);
+
+      models[collectionName] = true;
+
+      ServerController.addLocalBasedModel(models );
+
+    }
+
     const NO_REQUEST_BODY = Object.keys(req.body).length === 0;
-
-    const documentId = crypto.randomUUID();
-    const dirName = `${CWD}/db/collections/${collectionName}`;
-
-    const requestStream = new stream.Readable({
-      read() {},
-    });
 
     if (NO_REQUEST_BODY) {
       return ServerController.respond( res, "The request body appears to be empty", "error" );
     }
 
     const document = {
-      _id: documentId,
       ...req.body,
-      timestamps: {
-        createdAt: Date.now(),
-      },
     };
 
-    if (NO_COLLECTION_DIR) {
-      fs.mkdirSync(`${CWD}/db/collections/${collectionName}`);
-    }
+    await DatabaseController.insertIntoTable( collectionName, JSON.stringify( document) );
 
-    let fileStream = new Stream.Writable({
-      write() {},
-    });
+    ServerController.respond( res, {message: "done" }, "success", 201 )
 
-    fs.writeFile(
-      `${dirName}/${document.timestamps.createdAt}_${documentId}.json`,
-      "{}",
-      (err) => {
-        if (err) console.log(err);
-        fileStream = fs.createWriteStream(
-          `${dirName}/${document.timestamps.createdAt}_${documentId}.json`,
-          {
-            encoding: "utf-8",
-            flags: "w",
-          }
-        );
-
-        requestStream.on("end", () => fileStream.end());
-
-        requestStream.pipe(fileStream);
-
-        requestStream.push(Action.formatFile(JSON.stringify(document)));
-
-        ServerController.respond(res, document, "success");
-      }
-    );
   }
 
   static async getAll(req: Request, res: Response) {
+
     const collectionName_raw = req.params.collectionName;
 
     const pagination = parseInt(req.query?.pagination as string) || 1;
@@ -84,65 +61,11 @@ export default abstract class ServerController {
 
     const collectionName = ServerController.pluralize(collectionName_raw);
 
-    try {
-      const documents = fs.readdirSync(
-        `${CWD}/db/collections/${collectionName}`
-      );
-      let all_docs: {}[] = [];
+    const rows = await DatabaseController.selectFromTable(collectionName);
 
-      if (documents.length === 0) {
-        // return res.json({ collectionName, data: [] });
-        return ServerController.respond(res, {collectionName, data: []}, "success")
-      }
+    console.log( rows );
 
-      if (order === "d") documents.reverse();
-
-      const HAS_MORE = documents.length >= pagination * PAGINATION_MULTIPLE;
-
-      const SLICE_START_INDEX = (pagination - 1) * PAGINATION_MULTIPLE;
-
-      const SLICE_END_INDEX =
-        pagination * PAGINATION_MULTIPLE > documents.length
-          ? documents.length
-          : pagination * PAGINATION_MULTIPLE;
-
-      const slized_documents = documents.slice(
-        SLICE_START_INDEX,
-        SLICE_END_INDEX
-      );
-
-      const pagination_payload = {
-        hasMore: HAS_MORE,
-        next: HAS_MORE
-          ? `http://${req.headers.host}/${collectionName}/get/all?pagination=${
-              pagination + 1
-            }&&order=${order}`
-          : "null",
-      };
-
-      slized_documents.forEach((doc) => {
-        if (doc.includes("deleted")) return;
-
-        const data = JSON.parse(
-          fs.readFileSync(
-            `${CWD}/db/collections/${collectionName}/${doc}`,
-            "utf-8"
-          )
-        );
-
-        all_docs.push(data);
-      });
-
-      ServerController.respond(res, { collectionName, data: all_docs, ...pagination_payload }, "success" );
-
-    } catch (err: any) {
-
-      if (err.code === "ENOENT") {
-        return ServerController.respond( res, { collectionName, data: [], hasMore: false, next: null }, "success" );
-      }
-
-      return console.log(err);
-    }
+    ServerController.respond(res, rows , "success" );
   }
 
   static async getOne(req: Request, res: Response) {
@@ -304,6 +227,20 @@ export default abstract class ServerController {
     return readdirSync(`${CWD}/db/collections/${collectionName}/`).find(
       (file) => file.split(".")[0].split("_")[1] === file_id
     );
+  }
+
+  static getLocalBasedModels(){
+
+    const models = fs.readFileSync(`${CWD}/db/models.json`,{ encoding: "utf-8" });
+
+    return JSON.parse( models );
+
+  }
+
+  static addLocalBasedModel( content: any ){
+
+    fs.writeFileSync(`${CWD}/db/models.json`, JSON.stringify( content ) );
+
   }
 
   static respond(
