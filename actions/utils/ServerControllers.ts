@@ -43,9 +43,9 @@ export default abstract class ServerController {
       ...req.body,
     };
 
-    await DatabaseController.insertIntoTable( collectionName, JSON.stringify( document) );
+   const data = await DatabaseController.insertIntoTable( collectionName, JSON.stringify( document) );
 
-    ServerController.respond( res, {message: "done" }, "success", 201 )
+    ServerController.respond( res, data , "success", 201 )
 
   }
 
@@ -53,22 +53,21 @@ export default abstract class ServerController {
 
     const collectionName_raw = req.params.collectionName;
 
-    const pagination = parseInt(req.query?.pagination as string) || 1;
-
     const order = req.query?.order ?? "a";
 
-    const PAGINATION_MULTIPLE = 20;
+    const limit = parseInt(req.query?.limit as string);
+
+    const offset = parseInt( req.query?.offset as string );
 
     const collectionName = ServerController.pluralize(collectionName_raw);
 
-    const rows = await DatabaseController.selectFromTable(collectionName);
-
-    console.log( rows );
+    const rows = await DatabaseController.selectFromTable(collectionName, limit, offset );
 
     ServerController.respond(res, rows , "success" );
   }
 
   static async getOne(req: Request, res: Response) {
+
     const { collectionName: collectionName_raw, id } = req.params;
 
     const collectionName = ServerController.pluralize(collectionName_raw);
@@ -190,37 +189,21 @@ export default abstract class ServerController {
   }
 
   static async query(req: Request, res: Response) {
-    const query = req.query;
+    
+    const filter = req.query;
 
     const { collectionName: collectionName_raw } = req.params;
 
     const collectionName = ServerController.pluralize(collectionName_raw);
 
-    const config_buffer = await readFile(`${CWD}/package.json`);
+    const limit = parseInt(req.query?.limit as string);
 
-    const config = JSON.parse(config_buffer.toString());
+    const offset = parseInt( req.query?.offset as string );
 
-    //cases
+    const filtered_result =await DatabaseController.selectByFilter( collectionName, filter, limit, offset );
 
-    const NO_CONFIG = config.localbase === undefined;
+    ServerController.respond( res, filtered_result, "success" );
 
-    const NO_INDEX = !config.localbase.indexes.includes(collectionName);
-
-    let error_string = "";
-
-    if (NO_CONFIG) {
-      error_string =
-        "Config not found, run `localbase index <...collection-names seprated with - e.g users-comments-likes> `";
-      console.error(error_string);
-      return res.status(403).send(error_string);
-    }
-
-    if (NO_INDEX) {
-      error_string =
-        "Index not found, run `localbase index <...collection-names seprated with - e.g users-comments-likes> --append true `";
-      console.error(error_string);
-      return res.status(403).send(error_string);
-    }
   }
 
   static getFile(file_id: string, collectionName: string) {

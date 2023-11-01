@@ -55,6 +55,8 @@ export default abstract class Action {
 
     app.get("/:collectionName/get/single/:id", ServerController.getOne);
 
+    app.get("/:collectionName/get/filter", ServerController.query);
+
     app.patch("/:collectionName/update/:id", ServerController.update);
 
     app.delete("/:collectionName/delete/:id", ServerController.delete);
