@@ -134,7 +134,7 @@ export default abstract class ServerController {
         all_docs.push(data);
       });
 
-      ServerController.respond(res, { collectionName, data: all_docs }, "success" );
+      ServerController.respond(res, { collectionName, count: all_docs.length, data: all_docs }, "success" );
 
     } catch (err: any) {
 
