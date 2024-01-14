@@ -5,7 +5,7 @@ import crypto from "crypto";
 import stream, { Stream } from "stream";
 import utils from "util";
 import { readFile } from "fs/promises";
-import ServerController from "./utils/ServerControllers";
+import ServerController from "./utils/ServerControllers.cjs";
 import { log } from "logie";
 import open from "open";
 import path from "path";

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import sade from "sade"
-import Action from '../actions/index.js'
+import Action from '../actions/index.cjs'
 const prog = sade('my-cli');
 
 
