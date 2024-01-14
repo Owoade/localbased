@@ -1,6 +1,7 @@
 {
   "name": "localbased",
-  "version": "1.1.8",
+  "version": "1.1.9",
+  "type": "module",
   "author": "Owoade Anuoluwapo <owoadeanuoluwapo2@gmail.com>",
   "repository": "git@github.com:Owoade/localbased.git",
   "license": "MIT",
@@ -17,9 +18,7 @@
     "tslib": "^2.4.0"
   },
   "devDependencies": {
-    "@faker-js/faker": "^8.0.2",
     "@types/cors": "^2.8.12",
-    "@types/jest": "^29.5.3",
     "@types/yargs": "^17.0.13",
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.1.0",
@@ -32,10 +31,11 @@
     "REST"
   ],
   "scripts": {
-    "dev": "ts-node bin/index"
+    "dev": "ts-node bin/index",
+    "test": "jest --silent --timeout=10000"
   },
   "bin": {
-    "localbased": "./build/bin/index.js"
+    "localbased": "./build/bin/index.cjs"
   },
   "localbase": {
     "indexes": [
