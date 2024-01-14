@@ -5,6 +5,8 @@ import crypto from "crypto";
 import utils from "util";
 import Action from "../index.cjs";
 import { log } from "logie";
+import Joi from "joi";
+
 
 
 const CWD = process.cwd();
@@ -68,19 +70,28 @@ export default abstract class ServerController {
 
         requestStream.push(Action.formatFile(JSON.stringify(document)));
 
-        ServerController.respond(res, document, "success");
+        ServerController.respond(res, {collectionName, data: document}, "success");
       }
     );
   }
 
   static async getAll(req: Request, res: Response) {
+
     const collectionName_raw = req.params.collectionName;
 
-    const pagination = parseInt(req.query?.pagination as string) || 1;
+    const queryValidator = ServerController.getValidator("get-all-query-validator");
+
+    const validationError = ServerController.validatePayload(req.query, queryValidator);
+
+    if( validationError ) return ServerController.respond(res, validationError.message, "error" )
+
+    const page = parseInt(req.query?.page as string ) || 1;
+
+    const limit = parseInt(req.query?.limit as string ) || 50;
 
     const order = req.query?.order ?? "a";
 
-    const PAGINATION_MULTIPLE = 20;
+    const PAGINATION_MULTIPLE = limit;
 
     const collectionName = ServerController.pluralize(collectionName_raw);
 
@@ -97,28 +108,18 @@ export default abstract class ServerController {
 
       if (order === "d") documents.reverse();
 
-      const HAS_MORE = documents.length >= pagination * PAGINATION_MULTIPLE;
-
-      const SLICE_START_INDEX = (pagination - 1) * PAGINATION_MULTIPLE;
+      const SLICE_START_INDEX = (page - 1) * PAGINATION_MULTIPLE;
 
       const SLICE_END_INDEX =
-        pagination * PAGINATION_MULTIPLE > documents.length
+        page * PAGINATION_MULTIPLE > documents.length
           ? documents.length
-          : pagination * PAGINATION_MULTIPLE;
+          : page * PAGINATION_MULTIPLE;
 
       const slized_documents = documents.slice(
         SLICE_START_INDEX,
         SLICE_END_INDEX
       );
 
-      const pagination_payload = {
-        hasMore: HAS_MORE,
-        next: HAS_MORE
-          ? `http://${req.headers.host}/${collectionName}/get/all?pagination=${
-              pagination + 1
-            }&&order=${order}`
-          : "null",
-      };
 
       slized_documents.forEach((doc) => {
         if (doc.includes("deleted")) return;
@@ -133,7 +134,7 @@ export default abstract class ServerController {
         all_docs.push(data);
       });
 
-      ServerController.respond(res, { collectionName, data: all_docs, ...pagination_payload }, "success" );
+      ServerController.respond(res, { collectionName, data: all_docs }, "success" );
 
     } catch (err: any) {
 
@@ -171,6 +172,7 @@ export default abstract class ServerController {
   }
 
   static async update(req: Request, res: Response) {
+
     const { collectionName: collectionName_raw, id } = req.params;
 
     const collectionName = ServerController.pluralize(collectionName_raw);
@@ -184,9 +186,10 @@ export default abstract class ServerController {
       return ServerController.respond(res, "The `timestamps` property for documents are immutable. ", "error", 403);
 
     try {
+
       const main_file = ServerController.getFile(id, collectionName);
 
-      if (!main_file) return res.status(404).send(`document not found`);
+      if (!main_file) return ServerController.respond(res, "Record not found", "error", 404);
 
       const filePath = `${CWD}/db/collections/${collectionName}/${main_file}`;
 
@@ -219,7 +222,7 @@ export default abstract class ServerController {
 
       updatedDocumentStream.push(Action.formatFile(JSON.stringify(new_doc)));
 
-      ServerController.respond( res, new_doc, "success" )
+      ServerController.respond( res, {collectionName, data:new_doc }, "success" )
       
     } catch (err: any) {
       if (err.code === "ENOENT") {
@@ -259,7 +262,7 @@ export default abstract class ServerController {
       return console.log(err);
     }
 
-    ServerController.respond( res, "Document deleted successfully", "success" )
+    ServerController.respond( res, {}, "success" )
   }
 
   static pluralize(model: string) {
@@ -306,6 +309,32 @@ export default abstract class ServerController {
     );
   }
 
+  private static validatePayload( payload: any, validator: Joi.ObjectSchema ){
+
+    const { error } = validator.validate(payload);
+
+    return error;
+
+  } 
+
+  private static getValidator( key: ValidatorTypes ){
+
+    const validatorHash = {
+
+      "get-all-query-validator": Joi.object({
+
+        limit: Joi.string().regex(/^\d+$/).error( new Error("limit must be a number")),
+
+        page: Joi.string().regex(/^\d+$/).error( new Error("page must be a number")),
+
+      })
+
+    } as Record<ValidatorTypes, Joi.ObjectSchema>
+
+    return validatorHash[key];
+
+  }
+
   static respond(
     res: Response,
     payload: any,
@@ -326,5 +355,9 @@ export default abstract class ServerController {
     })
   }
 }
+
+type ValidatorTypes = "get-all-query-validator";
+
+
 
 
